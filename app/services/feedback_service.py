@@ -214,7 +214,17 @@ def fix_evidence_list(essay_text: str, evidence_list: list[str]) -> list[str]:
     return fixed_evidence
 
 FORBIDDEN_SCRIPT_PATTERN = re.compile(
-    r"[\u0600-\u06FF\u0900-\u097F\u0400-\u04FF\u4E00-\u9FFF\u3040-\u30FF]"
+    r"[\u0370-\u03FF"  # grego
+    r"\u0400-\u04FF"   # cirílico
+    r"\u0590-\u05FF"   # hebraico
+    r"\u0600-\u06FF"   # árabe
+    r"\u0900-\u097F"   # devanágari/hindi
+    r"\u0980-\u09FF"   # bengali
+    r"\u0E00-\u0E7F"   # tailandês
+    r"\u10A0-\u10FF"   # georgiano
+    r"\u3040-\u30FF"   # japonês
+    r"\u4E00-\u9FFF"   # chinês
+    r"\uAC00-\uD7AF]"  # coreano
 )
 
 def has_forbidden_script(value: Any) -> bool:
@@ -1376,12 +1386,35 @@ CALIBRAGEM DA C1:
 - Não penalize estilo sofisticado, períodos longos bem controlados ou vocabulário formal.
 - Para reduzir de 200 para 160, deve haver mais de dois desvios ou mais de uma falha sintática relevante.
 - Se houver apenas desvios muito pontuais, avalie se eles realmente impedem o nível 5.
+- Em C1, evidence deve conter apenas desvios formais concretos: grafia, acentuação, concordância, regência, crase, pontuação, informalidade ou falha sintática.- Não use como evidence trechos que sejam apenas ideias, expressões aceitáveis ou escolhas argumentativas.
+- Se citar um desvio de concordância, regência, crase, acentuação ou ortografia na justificativa, inclua exatamente esse trecho em evidence.
+- Não use como evidência de C1 trechos formalmente aceitáveis, apenas porque são sofisticados, longos ou estilisticamente marcados.
+- Expressões formais como "é mister", "urge que", "por conseguinte", "nesse sentido" e construções subordinadas bem formadas não devem ser tratadas como desvios.
+- Para reduzir C1 de nível 5 para nível 4, deve haver mais de dois desvios formais concretos OU mais de uma falha sintática relevante.
+- Um nome próprio estrangeiro grafado de forma discutível, isoladamente, não deve impedir nível 5 se o restante da norma-padrão estiver excelente.
+- Em redações com estrutura sintática excelente e apenas um ou dois desvios pontuais, atribua C1 nível 5.
+- Se C1 receber nível 5, não é necessário preencher evidence com desvios pontuais.
+- Em C1, só use evidence para desvios formais concretos e indiscutíveis.
+- Não use como evidence palavras ou expressões aceitáveis apenas por soarem incomuns, técnicas ou modernas.
+- Se não houver desvio formal concreto e curto, use evidence como lista vazia.
+- Não penalize em C1 imprecisões factuais, nomenclaturas institucionais discutíveis ou escolhas de conteúdo. C1 avalia domínio formal da língua, não precisão enciclopédica.
+- Não considere como desvio de C1 o uso de "Ministério de Educação e Cultura", "MEC", "Estado", "governo" ou nomes de instituições, a menos que haja erro formal evidente de grafia, concordância, regência, pontuação ou acentuação.
+- Não reduza C1 por construções formalmente aceitáveis que apenas poderiam ser mais elegantes ou precisas.
+- Para atribuir C1 nível 4 em uma redação de alta fluidez sintática, aponte pelo menos três desvios formais concretos e indiscutíveis.
+- Se não for possível apontar pelo menos três desvios formais concretos, e a estrutura sintática for excelente, atribua C1 nível 5.
+- Não use "soa pouco preciso", "poderia ser mais claro" ou "pouco natural" como justificativa para reduzir C1. Isso só pode reduzir C1 se houver desvio gramatical, ortográfico, de pontuação, regência, concordância, crase, acentuação, informalidade ou falha sintática concreta.
+- Antes de finalizar C1, confira se todos os desvios citados na justificativa aparecem literalmente na lista evidence.
+- Se um possível desvio não puder ser comprovado por evidence literal, não o mencione na justificativa.
 
 CALIBRAGEM DA C2:
 - Repertório legitimado, pertinente e vinculado à discussão deve ser considerado produtivo.
 - Não chame o repertório de improdutivo quando o aluno explica sua relação com o tema.
 - Repertório de filme, série, livro, conceito sociológico, filosófico ou histórico pode ser produtivo se for conectado ao argumento.
 - Não reduza para nível 4 apenas porque o repertório poderia ser mais aprofundado.
+- Não atribua nível 5 na C2 apenas porque há repertório legitimado e pertinente.
+- Para nível 5 em C2, o repertório deve ser claramente produtivo, ou seja, precisa sustentar diretamente a discussão central do texto.
+- Se o repertório aparece de forma mais ilustrativa, genérica ou parcialmente deslocada do problema específico do controle de dados, atribua nível 4.
+- Repertórios históricos ou culturais amplos, como Revolução Industrial ou Alan Turing, só devem ser nível 5 se estiverem claramente conectados à manipulação do comportamento pelo controle de dados na internet.
 
 CALIBRAGEM DA C3:
 - Um texto com tese clara, dois eixos argumentativos bem definidos e desenvolvimento consistente pode atingir nível 5.
@@ -1392,6 +1425,10 @@ CALIBRAGEM DA C4:
 - Um texto com operadores interparágrafos e intraparágrafos bem empregados, progressão clara e ausência de inadequações relevantes pode atingir nível 5.
 - Não reduza para nível 4 apenas por desejar maior variedade estilística.
 - Repetições pequenas e naturais de termos ligados ao tema não impedem, sozinhas, nível 5.
+- Não atribua nível 5 na C4 apenas pela presença de conectores no início dos parágrafos.
+- Para nível 5 em C4, deve haver articulação expressiva e adequada tanto entre parágrafos quanto dentro dos parágrafos, com boa diversidade de recursos coesivos.
+- Conectores previsíveis ou formulaicos, como "Em primeira instância", "Ademais" e "Destarte", podem garantir boa articulação, mas não garantem automaticamente nível 5.
+- Se a coesão é clara e constante, mas pouco diversificada ou dependente de fórmulas previsíveis, prefira nível 4.
 
 CALIBRAGEM DA C5:
 - A C5 não exige monitoramento, cronograma, órgão fiscalizador extra ou garantia de execução.
@@ -1399,6 +1436,48 @@ CALIBRAGEM DA C5:
 - Se houver ação, agente, modo/meio, efeito e detalhamento válidos, atribua nível 5.
 - Se houver duas propostas, avalie a mais completa.
 - Não reduza para nível 4 se a proposta já apresentar os cinco elementos esperados.
+- Se a justificativa reconhecer ação, agente, modo/meio, efeito e detalhamento válidos, o nível da C5 deve ser obrigatoriamente 5.
+- Não use expressões como "quase completa" se os cinco elementos forem reconhecidos na justificativa.
+- Para atribuir nível 4 na C5, explique claramente qual dos cinco elementos está ausente ou inválido.
+- Generalidade ou falta de refinamento não reduzem automaticamente a C5 para nível 4 se os cinco elementos estiverem válidos.
+- Na C5, não conte a própria ação como modo/meio.
+- Verbos como "legislar", "criar", "promover", "realizar" ou "fiscalizar" indicam a ação; eles não contam automaticamente como modo/meio.
+- Para haver modo/meio, deve existir uma indicação de como a ação será executada ou por meio de qual recurso, instrumento, parceria, campanha, lei específica, verba, plataforma, fiscalização ou procedimento.
+- Se a proposta apresentar apenas agente, ação e finalidade/efeito, atribua nível 3.
+
+EXEMPLOS DE CALIBRAGEM DA C5:
+
+Exemplo 1:
+"O Estado deve legislar para garantir que o usuário escolha se deseja compartilhar seus dados, dando mais liberdade e privacidade aos internautas."
+
+Avaliação obrigatória:
+- agente: Estado
+- ação: legislar
+- efeito/finalidade: garantir escolha, liberdade e privacidade
+- modo/meio: ausente
+- detalhamento: ausente
+- nível esperado: 3
+- score esperado: 120
+
+Justificativa:
+Nesse caso, "legislar" é a ação. Não conte "por meio de legislação" como modo/meio, pois isso apenas repete a própria ação.
+
+Exemplo 2:
+"O Estado deve criar leis, por meio da atuação da ANPD e da aplicação de multas às empresas que utilizarem dados sem consentimento, a fim de garantir mais liberdade e privacidade aos usuários."
+
+Avaliação possível:
+- agente: Estado
+- ação: criar leis
+- modo/meio: atuação da ANPD e aplicação de multas
+- efeito/finalidade: garantir liberdade e privacidade
+- detalhamento: empresas que utilizarem dados sem consentimento
+- nível possível: 5
+- score possível: 200
+
+- Se a proposta disser apenas que o Estado deve legislar/criar leis para resolver o problema, isso NÃO apresenta modo/meio automaticamente.
+- "Por meio de legislação" não conta como modo/meio quando a ação já é "legislar" ou "criar leis".
+- Para contar modo/meio, deve haver um procedimento, instrumento, órgão executor, parceria, recurso, canal, campanha, fiscalização, punição, plataforma ou estratégia concreta de execução.
+- Se houver apenas agente, ação e efeito/finalidade, a C5 deve ser nível 3.
 
 REGRAS DE SAÍDA:
 - A lista scores deve ter exatamente cinco itens, nesta ordem: C1, C2, C3, C4, C5.
@@ -1409,6 +1488,14 @@ REGRAS DE SAÍDA:
 - Se a justificativa mencionar um desvio, problema ou trecho específico da redação, esse trecho deve aparecer também em evidence.
 - Não mencione exemplos concretos na justificativa se eles não puderem ser comprovados por evidence.
 - Em C1, quando houver erro de grafia, acentuação, concordância, pontuação ou precisão vocabular, inclua em evidence o menor trecho literal possível.
+- A justificativa não pode contradizer o nível atribuído.
+- Se uma competência receber nível 4, a justificativa deve indicar qual critério concreto do nível 5 não foi plenamente cumprido.
+- Quando C1 receber nível 4 ou inferior, a justificativa deve citar desvios formais concretos e explicar brevemente a natureza do desvio.
+- Se a justificativa da C1 usar expressões vagas como "pouco preciso", "soa pouco natural" ou "poderia ser melhor", revise a nota: isso não basta para reduzir C1.
+- Se a justificativa mencionar um desvio, erro ou problema textual específico, esse trecho deve aparecer literalmente em evidence.
+- Não invente formas erradas que não estejam na redação.
+- Não mencione entre aspas nenhum trecho que não apareça literalmente na redação original.
+- Em C1, todo erro citado na justificativa precisa estar presente em evidence.
 """.strip()
 
 
@@ -1430,13 +1517,14 @@ def generate_ai_score_feedback(
             user_prompt += """
 
 ATENÇÃO FINAL:
-A resposta anterior foi rejeitada por inconsistência formal.
+A resposta anterior foi rejeitada por inconsistência formal ou por conter caracteres de outros alfabetos.
 Reescreva o JSON respeitando exatamente:
 - competências na ordem C1, C2, C3, C4 e C5;
 - score igual a level multiplicado por 40;
 - total_score igual à soma das cinco competências;
 - português brasileiro nos campos explicativos;
-- evidências literais e curtas retiradas da redação.
+- evidências literais e curtas retiradas da redação;
+- nenhum caractere grego, cirílico, hebraico, árabe, hindi, bengali, tailandês, georgiano, japonês, chinês ou coreano.
 """.strip()
 
         response = client.responses.create(

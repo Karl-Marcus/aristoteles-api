@@ -1,10 +1,16 @@
 from datetime import UTC, datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 
-from app.db.database import engine
-from app.db.models import EssayDB, EssayVersionDB, PromptDB, PromptSupportTextDB
+from app.db.database import engine, get_session
+from app.db.models import (
+    EssayDB,
+    EssayVersionDB,
+    FeedbackRecordDB,
+    PromptDB,
+    PromptSupportTextDB,
+)
 
 router = APIRouter(
     prefix="/dev",
@@ -22,6 +28,14 @@ DEMO_FULL_VERSION_ID = "version-demo-full-001"
 DEMO_REWRITE_ESSAY_ID = "essay-demo-rewrite"
 DEMO_REWRITE_VERSION_1_ID = "version-demo-rewrite-001"
 DEMO_REWRITE_VERSION_2_ID = "version-demo-rewrite-002"
+
+SCORE_TEST_LOW_ESSAY_ID = "essay-score-low"
+SCORE_TEST_MID_ESSAY_ID = "essay-score-mid"
+SCORE_TEST_HIGH_ESSAY_ID = "essay-score-high"
+
+SCORE_TEST_LOW_VERSION_ID = "version-score-low-001"
+SCORE_TEST_MID_VERSION_ID = "version-score-mid-001"
+SCORE_TEST_HIGH_VERSION_ID = "version-score-high-001"
 
 
 def now_utc() -> datetime:
@@ -139,6 +153,90 @@ def create_demo_essay(
 
     return essay
 
+SCORE_TEST_LOW_TEXT = """
+A manipulação do comportamento do usuário pelo controle de dados na internet é uma prática decorrente na atualidade. Porém, essa prática facilita muito a navegação, pois, na maioria das vezes, somos direcionados para onde queremos. Diante disso, deixar o usuário escolher se quer ou não compartilhar suas informações pode ser uma solução para o problema.
+
+Gigantes como o Facebook usam seus contatos no site para escolher pessoas que talvez você conheça e tenha interesse em adicioná-las em sua lista de amizades. Isso, em um primeiro momento, parece uma manipulação, porém, facilita muito por não ter que ficar procurando as pessoas no site.
+
+O aplicativo de gps Wase é outro exemplo que facilita nossa vidas, pois escolhe a melhor rota que devemos tomar, desviando do transito e levando o menor tempo para chegar ao destino.
+
+O Estado, portanto, deve legislar para garantir que o usuário defina se deseja ou não compartilhar suas informações dando, assim, mais liberdade e privacidade aos navegantes da internet.
+""".strip()
+
+
+SCORE_TEST_MID_TEXT = """
+O computador, criado por Alan Turing, tinha como principal finalidade decifrar códigos alemães durante guerras. Posteriormente, conforme as necessidades das épocas, tal máquina passou a desempenhar e ampliar suas funções. Nesse contexto, pode-se afirmar que o uso demasiado da tecnologia no dia a dia do homem corrobora na tentativa de torna-lo obediente às influências digitais.
+
+Em primeira instância, cabe pontuar que a busca pela praticidade e conforto do homem estreitou a relação desse com a tecnologia. Isso passou a ser evidente a partir do século XIX com a Revolução Industrial, quando a mão de obra passou a ser substituída pelas máquinas. Além da finalidade produtiva, a tecnologia também se destaca no campo da comunicação, uma vez que permite ao indivíduo um maior alcance de suas mensagens e o faz em tempo real, facilitando, portanto, a interação comunicativa dos usuários. Dessa forma, percebe-se a forte presença e necessidade dos aparatos tecnológicos no cotidiano da sociedade.
+
+Ademais, vale frisar que esse uso exacerbado da tecnologia permite que ela atue nas decisões do homem por meio do sistema de controle de dados que é capaz de ter acesso as preferências dos internautas e, assim, moldar sua forma de pensar. Artistas contemporâneos, como a cantora Pitty, retrata esse cenário na música “Admirável Chip Novo” no seguinte trecho: “Nada é orgânico, é tudo programado e eu achando que tinha me libertado”, evidenciando a falta de liberdade do homem diante da forte interferência digital. Sendo assim, tem-se uma necessidade de amenizar esse intenso contato da máquina com o homem para que esse possa ter o controle de suas decisões e não se tornar submisso às influências digitais.
+
+Destarte, é necessário que haja um maior controle no campo virtual para amenizar a forte influência de diversos sites nas decisões do indivíduo. Para isso, faz-se preciso a atuação do Governo Federal para criar medidas de segurança, em parceria com o Ministério da Comunicação, no âmbito de tornar os dados pessoais dos usuários mais preservados, podendo punir judicialmente os infratores em caso de invasão dessas informações. Além disso, as instituições de ensino, como órgão educador, devem elucidar os jovens sobre diversificar os sites que eles costumam acessar para que eles não fiquem restritos a uma só ferramenta, fazendo com que sua visão de mundo se amplie. Feito isso, a invenção engenhosa do Alan Turing será mais benéfica a conjuntura social.
+""".strip()
+
+
+SCORE_TEST_HIGH_TEXT = """
+No livro “1984” de George Orwell, é retratado um futuro distópico em que um Estado totalitário controla e manipula toda forma de registro histórico e contemporâneo, a fim de moldar a opinião pública a favor dos governantes. Nesse sentido, a narrativa foca na trajetória de Winston, um funcionário do contraditório Ministério da Verdade que diariamente analisa e altera notícias e conteúdos midiáticos para favorecer a imagem do Partido e formar a população através de tal ótica. Fora da ficção, é fato que a realidade apresentada por Orwell pode ser relacionada ao mundo cibernético do século XXI: gradativamente, os algoritmos e sistemas de inteligência artificial corroboram para a restrição de informações disponíveis e para a influência comportamental do público, preso em uma grande bolha sociocultural.
+
+Em primeiro lugar, é importante destacar que, em função das novas tecnologias, internautas são cada vez mais expostos a uma gama limitada de dados e conteúdos na internet, consequência do desenvolvimento de mecanismos filtradores de informação a partir do uso diário individual. De acordo com o filósofo Zygmund Baüman, vive-se atualmente um período de liberdade ilusória, já que o mundo digitalizado não só possibilitou novas formas de interação com o conhecimento, mas também abriu portas para a manipulação e alienação vistas em “1984”. Assim, os usuários são inconscientemente analisados e lhes é apresentado apenas o mais atrativo para o consumo pessoal.
+
+Por conseguinte, presencia-se um forte poder de influência desses algoritmos no comportamento da coletividade cibernética: ao observar somente o que lhe interessa e o que foi escolhido para ele, o indivíduo tende a continuar consumindo as mesmas coisas e fechar os olhos para a diversidade de opções disponíveis. Em um episódio da série televisiva Black Mirror, por exemplo, um aplicativo pareava pessoas para relacionamentos com base em estatísticas e restringia as possibilidades para apenas as que a máquina indicava – tornando o usuário passivo na escolha. Paralelamente, esse é o objetivo da indústria cultural para os pensadores da Escola de Frankfurt: produzir conteúdos a partir do padrão de gosto do público, para direcioná-lo, torná-lo homogêneo e, logo, facilmente atingível.
+
+Portanto, é mister que o Estado tome providências para amenizar o quadro atual. Para a conscientização da população brasileira a respeito do problema, urge que o Ministério de Educação e Cultura (MEC) crie, por meio de verbas governamentais, campanhas publicitárias nas redes sociais que detalhem o funcionamento dos algoritmos inteligentes nessas ferramentas e advirtam os internautas do perigo da alienação, sugerindo ao interlocutor criar o hábito de buscar informações de fontes variadas e manter em mente o filtro a que ele é submetido. Somente assim, será possível combater a passividade de muitos dos que utilizam a internet no país e, ademais, estourar a bolha que, da mesma forma que o Ministério da Verdade construiu em Winston de “1984”, as novas tecnologias estão construindo nos cidadãos do século XXI.
+""".strip()
+
+def delete_essay_with_versions_and_feedback(
+    session: Session,
+    essay_id: str,
+) -> None:
+    feedback_records = session.exec(
+        select(FeedbackRecordDB).where(FeedbackRecordDB.essay_id == essay_id)
+    ).all()
+
+    for feedback_record in feedback_records:
+        session.delete(feedback_record)
+
+    versions = session.exec(
+        select(EssayVersionDB).where(EssayVersionDB.essay_id == essay_id)
+    ).all()
+
+    for version in versions:
+        session.delete(version)
+
+    essay = session.get(EssayDB, essay_id)
+
+    if essay is not None:
+        session.delete(essay)
+
+
+def create_score_test_essay(
+    session: Session,
+    essay_id: str,
+    version_id: str,
+    student_alias: str,
+    content: str,
+) -> None:
+    current_time = datetime.now(UTC)
+
+    essay = EssayDB(
+        id=essay_id,
+        prompt_id=DEMO_PROMPT_ID,
+        student_alias=student_alias,
+        status="draft",
+        created_at=current_time,
+        updated_at=current_time,
+    )
+
+    version = EssayVersionDB(
+        id=version_id,
+        essay_id=essay_id,
+        version_number=1,
+        content=content,
+        created_at=current_time,
+    )
+
+    session.add(essay)
+    session.add(version)
 
 @router.post("/seed")
 def seed_demo_data():
@@ -334,6 +432,84 @@ def seed_rewrite_demo_data():
             {
                 "version_number": 2,
                 "description": "Versão reescrita de alto desempenho.",
+            },
+        ],
+    }
+
+@router.post("/seed-score-tests")
+def seed_score_tests(session: Session = Depends(get_session)):
+    prompt = session.get(PromptDB, DEMO_PROMPT_ID)
+
+    if prompt is None:
+        prompt = PromptDB(
+            id=DEMO_PROMPT_ID,
+            title="Tema ENEM 2018 - Calibração de Nota",
+            theme="Manipulação do comportamento do usuário pelo controle de dados na internet",
+            instructions=(
+                "Redija um texto dissertativo-argumentativo em modalidade escrita formal da língua portuguesa "
+                "sobre o tema Manipulação do comportamento do usuário pelo controle de dados na internet, "
+                "apresentando proposta de intervenção que respeite os direitos humanos."
+            ),
+        )
+
+        session.add(prompt)
+
+    score_test_essay_ids = [
+        SCORE_TEST_LOW_ESSAY_ID,
+        SCORE_TEST_MID_ESSAY_ID,
+        SCORE_TEST_HIGH_ESSAY_ID,
+    ]
+
+    for essay_id in score_test_essay_ids:
+        delete_essay_with_versions_and_feedback(
+            session=session,
+            essay_id=essay_id,
+        )
+
+    create_score_test_essay(
+        session=session,
+        essay_id=SCORE_TEST_LOW_ESSAY_ID,
+        version_id=SCORE_TEST_LOW_VERSION_ID,
+        student_alias="Calibração - Redação fraca",
+        content=SCORE_TEST_LOW_TEXT,
+    )
+
+    create_score_test_essay(
+        session=session,
+        essay_id=SCORE_TEST_MID_ESSAY_ID,
+        version_id=SCORE_TEST_MID_VERSION_ID,
+        student_alias="Calibração - Redação mediana",
+        content=SCORE_TEST_MID_TEXT,
+    )
+
+    create_score_test_essay(
+        session=session,
+        essay_id=SCORE_TEST_HIGH_ESSAY_ID,
+        version_id=SCORE_TEST_HIGH_VERSION_ID,
+        student_alias="Calibração - Redação nota 1000",
+        content=SCORE_TEST_HIGH_TEXT,
+    )
+
+    session.commit()
+
+    return {
+        "message": "Redações de calibração criadas com sucesso.",
+        "prompt_id": DEMO_PROMPT_ID,
+        "essays": [
+            {
+                "essay_id": SCORE_TEST_LOW_ESSAY_ID,
+                "label": "fraca",
+                "expected_range": "640-720",
+            },
+            {
+                "essay_id": SCORE_TEST_MID_ESSAY_ID,
+                "label": "mediana",
+                "expected_range": "800-880",
+            },
+            {
+                "essay_id": SCORE_TEST_HIGH_ESSAY_ID,
+                "label": "nota 1000",
+                "expected_range": "960-1000",
             },
         ],
     }
