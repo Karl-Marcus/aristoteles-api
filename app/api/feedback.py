@@ -18,6 +18,7 @@ from app.services.feedback_service import (
     generate_mock_score_feedback,
     generate_ai_comparison_feedback,
     generate_ai_full_feedback,
+    generate_ai_score_feedback,
     generate_ai_paragraph_feedback,
     generate_mock_paragraph_feedback,
     split_paragraphs,
@@ -370,10 +371,10 @@ def list_feedback_history(
             detail="Redação não encontrada."
         )
 
-    if feedback_type is not None and feedback_type not in ["full", "compare"]:
+    if feedback_type is not None and feedback_type not in ["full", "compare", "score"]:
         raise HTTPException(
             status_code=400,
-            detail="Tipo de feedback inválido. Use 'full' ou 'compare'."
+            detail="Tipo de feedback inválido. Use 'full', 'compare' ou 'score'."
         )
 
     query = select(FeedbackRecordDB).where(
@@ -434,3 +435,66 @@ def generate_score_mock(request: FullFeedbackRequest):
         version_number=latest_version.version_number,
         **score_feedback.model_dump(),
     )
+
+@router.post("/score-ai", response_model=ScoreFeedbackResponse)
+def generate_score_ai(
+    request: FullFeedbackRequest,
+    session: Session = Depends(get_session),
+):
+    essay = find_essay(request.essay_id)
+
+    if essay is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Redação não encontrada."
+        )
+
+    if not essay.versions:
+        raise HTTPException(
+            status_code=400,
+            detail="A redação não possui versões para avaliação."
+        )
+
+    prompt = find_prompt(essay.prompt_id)
+
+    if prompt is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Proposta vinculada à redação não encontrada."
+        )
+
+    latest_version = essay.versions[-1]
+
+    try:
+        score_feedback = generate_ai_score_feedback(
+            essay_text=latest_version.content,
+            theme=prompt.theme,
+        )
+
+        response_data = ScoreFeedbackResponse(
+            essay_id=request.essay_id,
+            version_number=latest_version.version_number,
+            **score_feedback.model_dump(),
+        )
+
+        save_feedback_record(
+            session=session,
+            essay_id=request.essay_id,
+            feedback_type="score",
+            version_number=latest_version.version_number,
+            payload=response_data.model_dump(mode="json"),
+        )
+
+        update_essay_status_after_feedback(
+            session=session,
+            essay_id=request.essay_id,
+        )
+
+        return response_data
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao gerar pontuação com IA: {error}"
+        )
+    

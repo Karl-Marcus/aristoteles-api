@@ -1269,3 +1269,213 @@ def generate_mock_score_feedback() -> ScoreFeedbackResult:
         ],
     )
     return validate_score_result(score_result)
+
+def build_ai_score_feedback_input(essay_text: str, theme: str) -> str:
+    return f"""
+Você é uma avaliadora pedagógica de redação ENEM.
+
+Sua tarefa é estimar uma pontuação pedagógica de 0 a 1000 para a redação enviada, com base nas cinco competências da redação do ENEM.
+
+IMPORTANTE:
+- Esta pontuação é uma estimativa pedagógica, não uma correção oficial.
+- Não diga que a nota é oficial.
+- Não escreva nem reescreva a redação pelo aluno.
+- Não dê uma versão pronta de tese, argumento ou proposta de intervenção.
+- Avalie apenas o texto enviado.
+- Responda exclusivamente no JSON solicitado.
+- Use português brasileiro em todos os campos explicativos.
+- As evidências devem ser trechos literais e curtos da redação.
+- Se não houver evidência literal curta para uma competência, use lista vazia.
+- Não use caracteres de outros alfabetos, como árabe, hindi, cirílico, chinês ou japonês.
+- Preserve apenas termos estrangeiros que já apareçam literalmente na redação.
+- Revise sua própria resposta para evitar erros gramaticais nos campos explicativos.
+
+TEMA:
+{theme}
+
+REDAÇÃO:
+{essay_text}
+
+ESCALA:
+Cada competência recebe um nível de 0 a 5.
+A pontuação deve seguir exatamente esta equivalência:
+nível 0 = 0 pontos
+nível 1 = 40 pontos
+nível 2 = 80 pontos
+nível 3 = 120 pontos
+nível 4 = 160 pontos
+nível 5 = 200 pontos
+
+A nota total deve ser a soma das cinco competências.
+
+RUBRICA RESUMIDA:
+
+C1 - Norma-padrão:
+Avalie domínio da modalidade escrita formal, considerando estrutura sintática e desvios.
+- nível 0: estrutura sintática inexistente.
+- nível 1: estrutura sintática deficitária com muitos desvios.
+- nível 2: estrutura sintática deficitária OU muitos desvios.
+- nível 3: estrutura sintática regular E alguns desvios.
+- nível 4: estrutura sintática boa E poucos desvios.
+- nível 5: estrutura sintática excelente, com no máximo uma falha, E no máximo dois desvios.
+Se estrutura sintática e desvios apontarem para níveis diferentes, prevalece o nível mais baixo.
+Não confunda problema de coesão com desvio gramatical. Ortografia, pontuação, concordância, regência, crase, acentuação, informalidade e escolha vocabular pertencem à C1.
+
+C2 - Tema, tipo textual e repertório:
+Avalie compreensão da proposta, atendimento ao tipo dissertativo-argumentativo e uso de repertório.
+- nível 0: situações de anulação, como fuga ao tema ou não atendimento ao tipo textual.
+- nível 1: tangência ao tema OU domínio precário do tipo textual.
+- nível 2: abordagem completa com problemas estruturais graves, partes embrionárias relevantes, conclusão incompleta ou muitos trechos de cópia.
+- nível 3: abordagem completa, estrutura básica e repertório limitado, baseado nos textos motivadores, não legitimado ou legitimado sem pertinência.
+- nível 4: abordagem completa, estrutura adequada e repertório legitimado e pertinente, mas com uso improdutivo ou pouco produtivo.
+- nível 5: abordagem completa, excelente domínio estrutural e repertório legitimado, pertinente e produtivo.
+Repertório produtivo não é apenas citar algo; ele precisa estar vinculado à discussão.
+Repertório de bolso, citação decorativa ou referência solta não deve ser tratada como uso plenamente produtivo.
+
+C3 - Projeto de texto e desenvolvimento:
+Avalie seleção, organização, relação e interpretação de informações, fatos, opiniões e argumentos em defesa de um ponto de vista.
+- nível 0: texto tangente ao tema e sem direção.
+- nível 1: texto tangente com direção OU abordagem completa sem direção.
+- nível 2: projeto de texto com muitas falhas E sem desenvolvimento ou com desenvolvimento de apenas uma informação, fato ou opinião; contradição grave não deve ultrapassar este nível.
+- nível 3: projeto de texto com algumas falhas E desenvolvimento de algumas informações, fatos e opiniões.
+- nível 4: projeto de texto com poucas falhas E desenvolvimento da maior parte das informações, fatos e opiniões.
+- nível 5: projeto de texto estratégico E desenvolvimento consistente das informações, fatos e opiniões em todo o texto.
+Não reavalie o repertório em si na C3. Avalie como as ideias foram organizadas e desenvolvidas.
+
+C4 - Coesão:
+Avalie os mecanismos linguísticos necessários para a construção da argumentação.
+- nível 0: palavras e períodos justapostos e desconexos, sem articulação.
+- nível 1: presença rara de elementos coesivos e/ou excessivas repetições e/ou excessivas inadequações.
+- nível 2: presença pontual de elementos coesivos e/ou muitas repetições e/ou muitas inadequações.
+- nível 3: presença regular de elementos coesivos inter e/ou intraparágrafos, com algumas repetições e/ou algumas inadequações.
+- nível 4: presença constante de elementos coesivos inter e intraparágrafos, com poucas repetições e/ou poucas inadequações.
+- nível 5: presença expressiva de elementos coesivos inter e intraparágrafos, repertório diversificado, raras ou ausentes repetições e sem inadequação.
+Não avalie grafia de conectivo na C4. Grafia é C1. C4 avalia a função semântica e articulatória dos recursos coesivos.
+
+C5 - Proposta de intervenção:
+Avalie a proposta de intervenção para o problema abordado, respeitando os direitos humanos.
+Considere os elementos: ação, agente, modo/meio, efeito e detalhamento.
+- nível 0: ausência de proposta, cópia integral de proposta, proposta não relacionada sequer ao assunto ou proposta que desrespeita explicitamente os direitos humanos.
+- nível 1: proposta tangente ao tema OU proposta com elemento nulo/um elemento válido.
+- nível 2: proposta com dois elementos válidos.
+- nível 3: proposta com três elementos válidos.
+- nível 4: proposta com quatro elementos válidos.
+- nível 5: proposta com cinco elementos válidos: ação, agente, modo/meio, efeito e detalhamento.
+Se houver mais de uma proposta, avalie a mais completa.
+Não penalize duas vezes a articulação da proposta com a discussão; isso é principalmente C3. Na C5, priorize a contagem e a validade dos elementos da proposta.
+Use expressões como "elementos esperados", "elementos avaliados" ou "elementos necessários para uma proposta completa".
+
+REGRAS DE CALIBRAGEM PEDAGÓGICA:
+
+- Não atribua nível 4 por cautela genérica. Para atribuir nível 4 em vez de nível 5, indique uma falha concreta prevista na grade da competência.
+- Se a redação cumpre plenamente os critérios do nível 5 em uma competência, atribua nível 5.
+- Não reduza a nota apenas porque o texto poderia ser "ainda melhor". Reduza apenas se houver falha compatível com a grade.
+- Não exija critérios que não estejam previstos na competência.
+
+CALIBRAGEM DA C1:
+- Não penalize estilo sofisticado, períodos longos bem controlados ou vocabulário formal.
+- Para reduzir de 200 para 160, deve haver mais de dois desvios ou mais de uma falha sintática relevante.
+- Se houver apenas desvios muito pontuais, avalie se eles realmente impedem o nível 5.
+
+CALIBRAGEM DA C2:
+- Repertório legitimado, pertinente e vinculado à discussão deve ser considerado produtivo.
+- Não chame o repertório de improdutivo quando o aluno explica sua relação com o tema.
+- Repertório de filme, série, livro, conceito sociológico, filosófico ou histórico pode ser produtivo se for conectado ao argumento.
+- Não reduza para nível 4 apenas porque o repertório poderia ser mais aprofundado.
+
+CALIBRAGEM DA C3:
+- Um texto com tese clara, dois eixos argumentativos bem definidos e desenvolvimento consistente pode atingir nível 5.
+- Não reduza para nível 4 apenas porque alguns trechos poderiam ser mais analíticos.
+- Para reduzir de 200 para 160, deve haver falha concreta no projeto de texto ou no desenvolvimento da argumentação.
+
+CALIBRAGEM DA C4:
+- Um texto com operadores interparágrafos e intraparágrafos bem empregados, progressão clara e ausência de inadequações relevantes pode atingir nível 5.
+- Não reduza para nível 4 apenas por desejar maior variedade estilística.
+- Repetições pequenas e naturais de termos ligados ao tema não impedem, sozinhas, nível 5.
+
+CALIBRAGEM DA C5:
+- A C5 não exige monitoramento, cronograma, órgão fiscalizador extra ou garantia de execução.
+- O detalhamento pode recair sobre ação, agente, modo/meio ou efeito.
+- Se houver ação, agente, modo/meio, efeito e detalhamento válidos, atribua nível 5.
+- Se houver duas propostas, avalie a mais completa.
+- Não reduza para nível 4 se a proposta já apresentar os cinco elementos esperados.
+
+REGRAS DE SAÍDA:
+- A lista scores deve ter exatamente cinco itens, nesta ordem: C1, C2, C3, C4, C5.
+- Em cada item, o campo level deve ser compatível com score.
+- O total_score deve ser exatamente a soma das cinco pontuações.
+- O campo warnings deve incluir, obrigatoriamente, a frase:
+"Esta pontuação é uma estimativa pedagógica e não substitui a correção oficial."
+""".strip()
+
+
+def generate_ai_score_feedback(
+    essay_text: str,
+    theme: str,
+) -> ScoreFeedbackResult:
+    client = get_openai_client()
+
+    max_attempts = 3
+
+    for attempt in range(max_attempts):
+        user_prompt = build_ai_score_feedback_input(
+            essay_text=essay_text,
+            theme=theme,
+        )
+
+        if attempt > 0:
+            user_prompt += """
+
+ATENÇÃO FINAL:
+A resposta anterior foi rejeitada por inconsistência formal.
+Reescreva o JSON respeitando exatamente:
+- competências na ordem C1, C2, C3, C4 e C5;
+- score igual a level multiplicado por 40;
+- total_score igual à soma das cinco competências;
+- português brasileiro nos campos explicativos;
+- evidências literais e curtas retiradas da redação.
+""".strip()
+
+        response = client.responses.create(
+            model=OPENAI_MODEL,
+            input=[
+                {
+                    "role": "system",
+                    "content": "Você é uma avaliadora pedagógica de redação ENEM. Responda apenas no formato JSON solicitado.",
+                },
+                {
+                    "role": "user",
+                    "content": user_prompt,
+                },
+            ],
+            text={
+                "format": {
+                    "type": "json_schema",
+                    "name": "score_feedback",
+                    "schema": SCORE_FEEDBACK_SCHEMA,
+                    "strict": True,
+                }
+            },
+        )
+
+        data = json.loads(response.output_text)
+
+        for score_item in data["scores"]:
+            score_item["evidence"] = fix_evidence_list(
+                essay_text=essay_text,
+                evidence_list=score_item["evidence"],
+            )
+
+        if has_forbidden_script(data):
+            continue
+
+        try:
+            score_result = ScoreFeedbackResult(**data)
+            return validate_score_result(score_result)
+
+        except ValueError:
+            continue
+
+    raise RuntimeError(
+        "A IA não conseguiu gerar uma pontuação válida após várias tentativas."
+    )
