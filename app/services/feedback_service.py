@@ -1406,6 +1406,9 @@ REGRAS DE SAÍDA:
 - O total_score deve ser exatamente a soma das cinco pontuações.
 - O campo warnings deve incluir, obrigatoriamente, a frase:
 "Esta pontuação é uma estimativa pedagógica e não substitui a correção oficial."
+- Se a justificativa mencionar um desvio, problema ou trecho específico da redação, esse trecho deve aparecer também em evidence.
+- Não mencione exemplos concretos na justificativa se eles não puderem ser comprovados por evidence.
+- Em C1, quando houver erro de grafia, acentuação, concordância, pontuação ou precisão vocabular, inclua em evidence o menor trecho literal possível.
 """.strip()
 
 
