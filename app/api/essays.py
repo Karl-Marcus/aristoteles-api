@@ -1,12 +1,10 @@
 import json
-
 from datetime import UTC, datetime
+from typing import Literal
 from uuid import uuid4
-
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
-
 from app.api.prompts import find_prompt
 from app.db.database import engine, get_session
 from app.db.models import EssayDB, EssayVersionDB, FeedbackRecordDB
@@ -15,6 +13,14 @@ router = APIRouter(
     prefix="/essays",
     tags=["Redações"],
 )
+
+EssayStatus = Literal[
+    "draft",
+    "submitted",
+    "feedback_generated",
+    "rewritten",
+    "finished",
+]
 
 class EssayCreate(BaseModel):
     prompt_id: str = Field(
@@ -50,6 +56,12 @@ class EssayResponse(BaseModel):
     versions: list[EssayVersionResponse]
     created_at: datetime
     updated_at: datetime
+
+class EssayStatusUpdate(BaseModel):
+    status: EssayStatus = Field(
+        ...,
+        description="Novo status da redação."
+    )
 
 class DashboardFeedbackSummary(BaseModel):
     id: str
@@ -285,6 +297,7 @@ def add_essay_version(
     )
 
     essay.updated_at = current_time
+    essay.status = "rewritten"
 
     session.add(new_version)
     session.add(essay)
@@ -444,3 +457,35 @@ def get_essay_dashboard_summary(
         latest_full_feedback=latest_full_feedback,
         latest_comparison=latest_comparison,
     )
+
+@router.patch("/{essay_id}/status", response_model=EssayResponse)
+def update_essay_status(
+    essay_id: str,
+    status_data: EssayStatusUpdate,
+    session: Session = Depends(get_session),
+):
+    essay = session.get(EssayDB, essay_id)
+
+    if essay is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Redação não encontrada."
+        )
+
+    essay.status = status_data.status
+    essay.updated_at = now_utc()
+
+    session.add(essay)
+    session.commit()
+    session.refresh(essay)
+
+    versions = get_essay_versions(
+        session=session,
+        essay_id=essay.id,
+    )
+
+    return essay_db_to_response(
+        essay=essay,
+        versions=versions,
+    )
+

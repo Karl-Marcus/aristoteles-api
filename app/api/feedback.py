@@ -9,7 +9,7 @@ from sqlmodel import Session, select
 from app.api.essays import find_essay
 from app.api.prompts import find_prompt
 from app.db.database import get_session
-from app.db.models import FeedbackRecordDB
+from app.db.models import EssayDB, FeedbackRecordDB
 from app.services.feedback_service import (
     CompareFeedbackResult,
     FeedbackItem,
@@ -158,6 +158,21 @@ def feedback_record_to_response(
         created_at=feedback_record.created_at,
     )
 
+def update_essay_status_after_feedback(
+    session: Session,
+    essay_id: str,
+) -> None:
+    essay = session.get(EssayDB, essay_id)
+
+    if essay is None:
+        return
+
+    essay.status = "feedback_generated"
+    essay.updated_at = now_utc()
+
+    session.add(essay)
+    session.commit()
+
 @router.post("/paragraph", response_model=ParagraphFeedbackResponse)
 def analyze_paragraph_mock(request: ParagraphFeedbackRequest):
     essay, selected_paragraph = get_essay_and_selected_paragraph(
@@ -254,7 +269,11 @@ def analyze_full_essay_ai(
             version_number=latest_version.version_number,
             payload=response_data.model_dump(mode="json"),
         )
-
+        update_essay_status_after_feedback(
+            session=session,
+            essay_id=request.essay_id,
+        )
+        
         return response_data
 
     except Exception as error:
