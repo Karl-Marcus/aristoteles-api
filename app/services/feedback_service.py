@@ -83,6 +83,21 @@ class FullFeedbackResult(BaseModel):
     competence_feedback: list[FullCompetenceFeedback]
     next_steps: list[str]
 
+class CompetenceScore(BaseModel):
+    competence: Literal["C1", "C2", "C3", "C4", "C5"]
+    level: Literal[0, 1, 2, 3, 4, 5]
+    score: Literal[0, 40, 80, 120, 160, 200]
+    summary: str
+    evidence: list[str]
+    justification: str
+    improvement_focus: str
+
+class ScoreFeedbackResult(BaseModel):
+    scores: list[CompetenceScore]
+    total_score: int
+    general_comment: str
+    warnings: list[str]
+
 class CompetenceEvolutionItem(BaseModel):
     competence: Literal["C1", "C2", "C3", "C4", "C5"]
     evolution: Literal[
@@ -205,6 +220,37 @@ FORBIDDEN_SCRIPT_PATTERN = re.compile(
 def has_forbidden_script(value: Any) -> bool:
     text = json.dumps(value, ensure_ascii=False)
     return bool(FORBIDDEN_SCRIPT_PATTERN.search(text))
+
+def validate_score_result(score_result: ScoreFeedbackResult) -> ScoreFeedbackResult:
+    expected_competences = ["C1", "C2", "C3", "C4", "C5"]
+
+    received_competences = [
+        item.competence for item in score_result.scores
+    ]
+
+    if received_competences != expected_competences:
+        raise ValueError(
+            "As competências precisam aparecer na ordem C1, C2, C3, C4 e C5."
+        )
+
+    for item in score_result.scores:
+        expected_score = item.level * 40
+
+        if item.score != expected_score:
+            raise ValueError(
+                f"A pontuação da {item.competence} está incoerente com o nível informado."
+            )
+
+    total_score = sum(
+        item.score for item in score_result.scores
+    )
+
+    if score_result.total_score != total_score:
+        raise ValueError(
+            "A nota total não corresponde à soma das competências."
+        )
+
+    return score_result
 
 def generate_mock_paragraph_feedback(paragraph: str) -> list[FeedbackItem]:
     feedback = []
@@ -498,6 +544,80 @@ FULL_FEEDBACK_SCHEMA = {
         "next_steps",
     ],
     "additionalProperties": False,
+}
+
+SCORE_FEEDBACK_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "scores": {
+            "type": "array",
+            "minItems": 5,
+            "maxItems": 5,
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "competence": {
+                        "type": "string",
+                        "enum": ["C1", "C2", "C3", "C4", "C5"],
+                    },
+                    "level": {
+                        "type": "integer",
+                        "enum": [0, 1, 2, 3, 4, 5],
+                    },
+                    "score": {
+                        "type": "integer",
+                        "enum": [0, 40, 80, 120, 160, 200],
+                    },
+                    "summary": {
+                        "type": "string",
+                    },
+                    "evidence": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                        },
+                    },
+                    "justification": {
+                        "type": "string",
+                    },
+                    "improvement_focus": {
+                        "type": "string",
+                    },
+                },
+                "required": [
+                    "competence",
+                    "level",
+                    "score",
+                    "summary",
+                    "evidence",
+                    "justification",
+                    "improvement_focus",
+                ],
+            },
+        },
+        "total_score": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000,
+        },
+        "general_comment": {
+            "type": "string",
+        },
+        "warnings": {
+            "type": "array",
+            "items": {
+                "type": "string",
+            },
+        },
+    },
+    "required": [
+        "scores",
+        "total_score",
+        "general_comment",
+        "warnings",
+    ],
 }
 
 COMPARE_FEEDBACK_SCHEMA = {
@@ -1089,3 +1209,63 @@ Preserve apenas termos estrangeiros que já apareçam literalmente nas redaçõe
     raise RuntimeError(
         "A resposta da IA trouxe caracteres de outros idiomas após várias tentativas. Tente gerar a comparação novamente."
     )
+
+def generate_mock_score_feedback() -> ScoreFeedbackResult:
+    score_result = ScoreFeedbackResult(
+        scores=[
+            CompetenceScore(
+                competence="C1",
+                level=4,
+                score=160,
+                summary="Bom domínio da modalidade escrita formal, com poucos desvios.",
+                evidence=[],
+                justification="O texto apresenta construção sintática compreensível e poucos problemas formais.",
+                improvement_focus="Revisar pontuação, concordância e precisão vocabular.",
+            ),
+            CompetenceScore(
+                competence="C2",
+                level=4,
+                score=160,
+                summary="Boa compreensão do tema e presença de repertório pertinente.",
+                evidence=[],
+                justification="O texto aborda o tema de forma completa, mas o repertório ainda pode ser mais produtivo.",
+                improvement_focus="Integrar melhor o repertório à argumentação.",
+            ),
+            CompetenceScore(
+                competence="C3",
+                level=4,
+                score=160,
+                summary="Projeto de texto com poucas falhas e bom desenvolvimento argumentativo.",
+                evidence=[],
+                justification="A redação apresenta organização clara, ainda que alguns argumentos possam ser aprofundados.",
+                improvement_focus="Aprofundar as relações de causa e consequência.",
+            ),
+            CompetenceScore(
+                competence="C4",
+                level=4,
+                score=160,
+                summary="Boa articulação textual, com recursos coesivos adequados.",
+                evidence=[],
+                justification="O texto apresenta conectivos e retomadas que contribuem para a progressão das ideias.",
+                improvement_focus="Variar os mecanismos de coesão e evitar repetições.",
+            ),
+            CompetenceScore(
+                competence="C5",
+                level=4,
+                score=160,
+                summary="Proposta de intervenção presente, mas ainda com detalhamento aprimorável.",
+                evidence=[],
+                justification="A proposta apresenta elementos importantes, mas pode detalhar melhor meio e efeito.",
+                improvement_focus="Explicitar agente, ação, meio, efeito e detalhamento com mais precisão.",
+            ),
+        ],
+        total_score=800,
+        general_comment=(
+            "Esta é uma estimativa pedagógica de pontuação baseada nos critérios da redação do ENEM."
+        ),
+        warnings=[
+            "Esta pontuação não substitui a correção oficial.",
+            "A nota deve ser interpretada junto ao feedback pedagógico.",
+        ],
+    )
+    return validate_score_result(score_result)

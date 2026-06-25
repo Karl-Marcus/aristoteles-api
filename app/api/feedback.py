@@ -14,6 +14,8 @@ from app.services.feedback_service import (
     CompareFeedbackResult,
     FeedbackItem,
     FullFeedbackResult,
+    ScoreFeedbackResult,
+    generate_mock_score_feedback,
     generate_ai_comparison_feedback,
     generate_ai_full_feedback,
     generate_ai_paragraph_feedback,
@@ -57,6 +59,10 @@ class FullFeedbackRequest(BaseModel):
         ...,
         description="ID da redação completa que será analisada."
     )
+
+class ScoreFeedbackResponse(ScoreFeedbackResult):
+    essay_id: str
+    version_number: int
 
 class FullFeedbackResponse(FullFeedbackResult):
     essay_id: str
@@ -402,3 +408,29 @@ def get_feedback_record(
         )
 
     return feedback_record_to_response(feedback_record)
+
+@router.post("/score-mock", response_model=ScoreFeedbackResponse)
+def generate_score_mock(request: FullFeedbackRequest):
+    essay = find_essay(request.essay_id)
+
+    if essay is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Redação não encontrada."
+        )
+
+    if not essay.versions:
+        raise HTTPException(
+            status_code=400,
+            detail="A redação não possui versões para avaliação."
+        )
+
+    latest_version = essay.versions[-1]
+
+    score_feedback = generate_mock_score_feedback()
+
+    return ScoreFeedbackResponse(
+        essay_id=request.essay_id,
+        version_number=latest_version.version_number,
+        **score_feedback.model_dump(),
+    )
