@@ -334,6 +334,7 @@ def compare_essay_versions_ai(
 @router.get("/history/{essay_id}", response_model=list[FeedbackHistoryItem])
 def list_feedback_history(
     essay_id: str,
+    feedback_type: str | None = None,
     session: Session = Depends(get_session),
 ):
     essay = find_essay(essay_id)
@@ -344,13 +345,41 @@ def list_feedback_history(
             detail="Redação não encontrada."
         )
 
+    if feedback_type is not None and feedback_type not in ["full", "compare"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Tipo de feedback inválido. Use 'full' ou 'compare'."
+        )
+
+    query = select(FeedbackRecordDB).where(
+        FeedbackRecordDB.essay_id == essay_id
+    )
+
+    if feedback_type is not None:
+        query = query.where(
+            FeedbackRecordDB.feedback_type == feedback_type
+        )
+
     feedback_records = session.exec(
-        select(FeedbackRecordDB)
-        .where(FeedbackRecordDB.essay_id == essay_id)
-        .order_by(FeedbackRecordDB.created_at.desc())
+        query.order_by(FeedbackRecordDB.created_at.desc())
     ).all()
 
     return [
         feedback_record_to_response(feedback_record)
         for feedback_record in feedback_records
     ]
+
+@router.get("/records/{feedback_id}", response_model=FeedbackHistoryItem)
+def get_feedback_record(
+    feedback_id: str,
+    session: Session = Depends(get_session),
+):
+    feedback_record = session.get(FeedbackRecordDB, feedback_id)
+
+    if feedback_record is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Feedback não encontrado."
+        )
+
+    return feedback_record_to_response(feedback_record)

@@ -11,12 +11,10 @@ from app.api.prompts import find_prompt
 from app.db.database import engine, get_session
 from app.db.models import EssayDB, EssayVersionDB, FeedbackRecordDB
 
-
 router = APIRouter(
     prefix="/essays",
     tags=["Redações"],
 )
-
 
 class EssayCreate(BaseModel):
     prompt_id: str = Field(
@@ -32,20 +30,17 @@ class EssayCreate(BaseModel):
         description="Conteúdo inicial da redação."
     )
 
-
 class EssayVersionCreate(BaseModel):
     content: str = Field(
         ...,
         description="Nova versão da redação."
     )
 
-
 class EssayVersionResponse(BaseModel):
     id: str
     version_number: int
     content: str
     created_at: datetime
-
 
 class EssayResponse(BaseModel):
     id: str
@@ -67,7 +62,6 @@ class DashboardFeedbackSummary(BaseModel):
     next_steps: list[str]
     created_at: datetime
 
-
 class EssayDashboardResponse(BaseModel):
     essay: EssayResponse
     prompt_title: str
@@ -77,9 +71,22 @@ class EssayDashboardResponse(BaseModel):
     latest_full_feedback: DashboardFeedbackSummary | None
     latest_comparison: DashboardFeedbackSummary | None
 
+class EssayDashboardSummaryResponse(BaseModel):
+    essay_id: str
+    prompt_id: str
+    student_alias: str
+    status: str
+    prompt_title: str
+    prompt_theme: str
+    total_versions: int
+    latest_version_number: int | None
+    created_at: datetime
+    updated_at: datetime
+    latest_full_feedback: DashboardFeedbackSummary | None
+    latest_comparison: DashboardFeedbackSummary | None
+
 def now_utc() -> datetime:
     return datetime.now(UTC)
-
 
 def essay_version_db_to_response(
     version: EssayVersionDB,
@@ -91,7 +98,6 @@ def essay_version_db_to_response(
         created_at=version.created_at,
     )
 
-
 def get_essay_versions(
     session: Session,
     essay_id: str,
@@ -101,7 +107,6 @@ def get_essay_versions(
         .where(EssayVersionDB.essay_id == essay_id)
         .order_by(EssayVersionDB.version_number)
     ).all()
-
 
 def essay_db_to_response(
     essay: EssayDB,
@@ -136,7 +141,6 @@ def feedback_record_to_dashboard_summary(
         next_steps=payload.get("next_steps") or payload.get("next_revision_focus") or [],
         created_at=feedback_record.created_at,
     )
-
 
 def get_latest_feedback_record(
     session: Session,
@@ -365,6 +369,78 @@ def get_essay_dashboard(
         prompt_theme=prompt.theme,
         total_versions=len(versions),
         latest_version_number=latest_version_number,
+        latest_full_feedback=latest_full_feedback,
+        latest_comparison=latest_comparison,
+    )
+
+@router.get("/{essay_id}/dashboard-summary", response_model=EssayDashboardSummaryResponse)
+def get_essay_dashboard_summary(
+    essay_id: str,
+    session: Session = Depends(get_session),
+):
+    essay = session.get(EssayDB, essay_id)
+
+    if essay is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Redação não encontrada."
+        )
+
+    versions = get_essay_versions(
+        session=session,
+        essay_id=essay.id,
+    )
+
+    prompt = find_prompt(essay.prompt_id)
+
+    if prompt is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Proposta vinculada à redação não encontrada."
+        )
+
+    latest_full_feedback_record = get_latest_feedback_record(
+        session=session,
+        essay_id=essay.id,
+        feedback_type="full",
+    )
+
+    latest_comparison_record = get_latest_feedback_record(
+        session=session,
+        essay_id=essay.id,
+        feedback_type="compare",
+    )
+
+    latest_full_feedback = None
+
+    if latest_full_feedback_record is not None:
+        latest_full_feedback = feedback_record_to_dashboard_summary(
+            latest_full_feedback_record
+        )
+
+    latest_comparison = None
+
+    if latest_comparison_record is not None:
+        latest_comparison = feedback_record_to_dashboard_summary(
+            latest_comparison_record
+        )
+
+    latest_version_number = None
+
+    if versions:
+        latest_version_number = versions[-1].version_number
+
+    return EssayDashboardSummaryResponse(
+        essay_id=essay.id,
+        prompt_id=essay.prompt_id,
+        student_alias=essay.student_alias,
+        status=essay.status,
+        prompt_title=prompt.title,
+        prompt_theme=prompt.theme,
+        total_versions=len(versions),
+        latest_version_number=latest_version_number,
+        created_at=essay.created_at,
+        updated_at=essay.updated_at,
         latest_full_feedback=latest_full_feedback,
         latest_comparison=latest_comparison,
     )
